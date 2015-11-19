@@ -1,16 +1,20 @@
 ﻿using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace FileUploads
 {
     public class FileServer
     {
         HttpListener listener;
-        public FileServer(string pref)
+        int numMaxParallelRequests;
+
+        public FileServer(string pref, int maxParallelRequests)
         {
             listener = new HttpListener();
             listener.Prefixes.Add(pref);
+            numMaxParallelRequests = maxParallelRequests;
         }
 
         private void ProcessRequest()
@@ -42,7 +46,10 @@ namespace FileUploads
         public void Start()
         {
             listener.Start();
-            ProcessRequest();
+            for (int i = 0; i < numMaxParallelRequests; i++)
+            {
+                ProcessRequest();
+            }
         }
 
         public void Stop()

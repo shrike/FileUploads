@@ -9,12 +9,14 @@ namespace FileUploads
     {
         HttpListener listener;
         int numMaxParallelRequests;
+        int concurrentAllowedRequests;
 
         public FileServer(string pref, int maxParallelRequests)
         {
             listener = new HttpListener();
             listener.Prefixes.Add(pref);
             numMaxParallelRequests = maxParallelRequests;
+            concurrentAllowedRequests = numMaxParallelRequests;
         }
 
         private void ProcessRequest()
@@ -27,12 +29,20 @@ namespace FileUploads
                 {
                     HttpListenerRequest request = context.Request;
                     HttpListenerResponse response = context.Response;
-                    string responseString = "<HTML><BODY> Hello world!</BODY></HTML>";
-                    byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-                    response.ContentLength64 = buffer.Length;
-                    System.IO.Stream output = response.OutputStream;
-                    Thread.Sleep(500);
-                    output.Write(buffer, 0, buffer.Length);
+                    if (Interlocked.Decrement(ref concurrentAllowedRequests) < 0)
+                    {
+                        response.StatusCode = 503;
+                    }
+                    else
+                    {
+                        string responseString = "<html><body>File uploaded successfully.</body></html>";
+                        byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+                        response.ContentLength64 = buffer.Length;
+                        System.IO.Stream output = response.OutputStream;
+                        Thread.Sleep(5000);
+                        output.Write(buffer, 0, buffer.Length);
+                    }
+                    Interlocked.Increment(ref concurrentAllowedRequests);
                 }
                 finally
                 {
@@ -46,7 +56,10 @@ namespace FileUploads
         public void Start()
         {
             listener.Start();
-            for (int i = 0; i < numMaxParallelRequests; i++)
+            // We start one more thread that listens for requests whose
+            // sole purpose will be to respond with 503 when all other
+            // request processors are busy.
+            for (int i = 0; i < numMaxParallelRequests+1; i++)
             {
                 ProcessRequest();
             }

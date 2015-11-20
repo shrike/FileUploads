@@ -9,10 +9,12 @@ namespace FileUploads
         {
             string pref = "http://localhost:8080/";
             int numMaxParallelRequests = 16;
+            string fileUploadDestination = @"C:\uploads";
+
             ThreadPool.SetMinThreads(numMaxParallelRequests, 0);
 
             Console.WriteLine("Starting file server on {0}.", pref);
-            FileServer server = new FileServer(pref, numMaxParallelRequests);
+            FileServer server = new FileServer(pref, numMaxParallelRequests, fileUploadDestination);
             server.Start();
             Console.WriteLine("Server started. Press a key to quit.");
             Console.ReadKey();

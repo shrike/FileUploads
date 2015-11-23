@@ -8,7 +8,7 @@ using System;
 namespace UTFileServer
 {
     [TestClass]
-    public class UnitTest1
+    public class UTFileServer
     {
         static string pref = "http://localhost:8080/";
         static FileUploads.FileServer server;
@@ -134,6 +134,7 @@ namespace UTFileServer
             string[] files = System.IO.Directory.GetFiles(fileUploadDestination);
             Assert.AreEqual(0, files.Length);
         }
+
         public void FileUpload(string filename)
         {
             WebClient webClient = new WebClient();

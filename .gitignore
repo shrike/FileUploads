@@ -44,3 +44,4 @@ Temporary Items
 */bin/*
 */obj/*
 .vs/FileUploads/v14/.suo
+*.coverage

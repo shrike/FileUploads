@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="FileServer.cs" />
     <Compile Include="Driver.cs" />
+    <Compile Include="FileStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

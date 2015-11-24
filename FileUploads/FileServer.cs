@@ -11,6 +11,7 @@ namespace FileUploads
         int numMaxParallelRequests;
         int concurrentAllowedRequests;
         string fileUploadsDestination;
+        FileStore fileStore;
 
         public FileServer(string pref, int maxParallelRequests,
             string destination)
@@ -20,11 +21,7 @@ namespace FileUploads
             numMaxParallelRequests = maxParallelRequests;
             concurrentAllowedRequests = numMaxParallelRequests;
             fileUploadsDestination = destination;
-            bool exists = System.IO.Directory.Exists(fileUploadsDestination);
-            if (exists == false)
-            {
-                System.IO.Directory.CreateDirectory(fileUploadsDestination);
-            }
+            System.IO.Directory.CreateDirectory(fileUploadsDestination);
         }
 
         private void StoreFileFromRequest(HttpListenerRequest request)

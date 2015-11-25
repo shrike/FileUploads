@@ -2,7 +2,7 @@
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
+using System.IO;
 using System;
 
 namespace UTFileServer
@@ -24,7 +24,7 @@ namespace UTFileServer
             // to be able to issue that many requests in parallel.
             ThreadPool.SetMinThreads(numMaxParallelRequests * 2 + additionalRequests, 0);
 
-            server = new FileUploads.FileServer(pref, numMaxParallelRequests, fileUploadDestination);
+            server = new FileUploads.FileServer(pref, numMaxParallelRequests, fileUploadDestination, 3);
             server.Start();
         }
 
@@ -32,6 +32,7 @@ namespace UTFileServer
         public void CleanUp()
         {
             server.Stop();
+            cleanUploads();
         }
 
         private HttpWebResponse MakeSingleRequest()
@@ -127,35 +128,49 @@ namespace UTFileServer
         private void cleanUploads()
         {
             // Remove all files from the uploads dir
-            foreach (string filepath in System.IO.Directory.EnumerateFiles(fileUploadDestination))
+            foreach (string dirpath in Directory.EnumerateDirectories(fileUploadDestination))
             {
-                System.IO.File.Delete(filepath);
+                Directory.Delete(dirpath, true);
             }
-            string[] files = System.IO.Directory.GetFiles(fileUploadDestination);
+
+            string[] files = Directory.GetFiles(fileUploadDestination);
             Assert.AreEqual(0, files.Length);
+            string[] dirs = Directory.GetDirectories(fileUploadDestination);
+            Assert.AreEqual(0, dirs.Length);
         }
 
-        public void FileUpload(string filename)
+        public HttpStatusCode FileUpload(string filename)
         {
             WebClient webClient = new WebClient();
-            byte[] responseArray = webClient.UploadFile(pref, filename);
+            byte[] responseArray;
+            try
+            {
+                responseArray = webClient.UploadFile(pref, filename);
+            }
+            catch (WebException e)
+            {
+                var r = (HttpWebResponse) e.Response;
+                return r.StatusCode;
+            }
             string res = System.Text.Encoding.ASCII.GetString(responseArray);
 
-            // Now check that a file was created in the uploads dir
-            string[] files = System.IO.Directory.GetFiles(fileUploadDestination);
-            Assert.AreEqual(1, files.Length);
+            return HttpStatusCode.OK;
         }
 
-        public void FileUpload(string filename, string fileContent)
+        public HttpStatusCode FileUpload(string filename, string fileContent)
         {
-            System.IO.File.WriteAllText(filename, fileContent);
-            FileUpload(filename);
+            File.WriteAllText(filename, fileContent);
+            HttpStatusCode statusCode = FileUpload(filename);
 
+            // Make sure that a single dir with a single file was created
+            string[] dirs = Directory.GetDirectories(fileUploadDestination);
+            Assert.AreEqual(1, dirs.Length);
+            string[] files = Directory.GetFiles(dirs[0]);
             // Make sure the contents of the file are the same
-            string[] files = System.IO.Directory.GetFiles(fileUploadDestination);
-            string uploadedFileContent = System.IO.File.ReadAllText(files[0]);
+            string uploadedFileContent = File.ReadAllText(files[0]);
             Assert.AreEqual(fileContent.Length, uploadedFileContent.Length);
             Assert.AreEqual(fileContent, uploadedFileContent);
+            return statusCode;
         }
 
         [TestMethod]
@@ -178,7 +193,7 @@ namespace UTFileServer
         public void TestLargeFileUpload()
         {
             string filename = "test-file2.txt";
-            System.IO.StreamWriter file = new System.IO.StreamWriter(filename);
+            StreamWriter file = new StreamWriter(filename);
 
             for (int i=0; i<10000000; ++i)
             {
@@ -187,5 +202,35 @@ namespace UTFileServer
             file.Close();
             FileUpload(filename);
         }
-    }
-}
+
+        [TestMethod]
+        public void TestParallelFileUploads()
+        {
+            Task<HttpStatusCode>[] tasks = new Task<HttpStatusCode>[numMaxParallelRequests];
+
+            for (int i = 0; i < numMaxParallelRequests; i++)
+            {
+                var j = i + 1;
+                tasks[i] = Task.Run(() =>
+                {
+                    string filename = String.Format("test-file-{0}-of-{1}", j, numMaxParallelRequests);
+                    string fileContent = String.Format("Contents of file {0}. End.", j);
+                    File.WriteAllText(filename, fileContent);
+                    return FileUpload(filename);
+                });
+            }
+
+            int numGoodResponses = 0;
+            for (int i = 0; i < numMaxParallelRequests; i++)
+            {
+                HttpStatusCode statusCode = tasks[i].Result;
+                if (statusCode == HttpStatusCode.OK)
+                {
+                    numGoodResponses += 1;
+                }
+            }
+
+            Assert.AreEqual(numMaxParallelRequests, numGoodResponses);
+        }
+    } // public class UTFileServer
+} // namespace UTFileServer

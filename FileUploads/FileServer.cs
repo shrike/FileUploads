@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
+using System.IO;
 
 namespace FileUploads
 {
@@ -14,14 +14,15 @@ namespace FileUploads
         FileStore fileStore;
 
         public FileServer(string pref, int maxParallelRequests,
-            string destination)
+            string destination, int numMaxDirNodes=50)
         {
             listener = new HttpListener();
             listener.Prefixes.Add(pref);
             numMaxParallelRequests = maxParallelRequests;
             concurrentAllowedRequests = numMaxParallelRequests;
             fileUploadsDestination = destination;
-            System.IO.Directory.CreateDirectory(fileUploadsDestination);
+            Directory.CreateDirectory(fileUploadsDestination);
+            fileStore = new FileStore(numMaxDirNodes, fileUploadsDestination);
         }
 
         private void StoreFileFromRequest(HttpListenerRequest request)
@@ -31,9 +32,9 @@ namespace FileUploads
                 return;
             }
 
-            System.IO.Stream body = request.InputStream;
+            Stream body = request.InputStream;
             System.Text.Encoding encoding = request.ContentEncoding;
-            System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+            StreamReader reader = new StreamReader(body, encoding);
 
             // This is not the proper way to parse a multipart request,
             // but for the sake of simplicity...
@@ -44,7 +45,8 @@ namespace FileUploads
                 line = reader.ReadLine();
             }
 
-            System.IO.StreamWriter file = new System.IO.StreamWriter(fileUploadsDestination + "\\test1.txt");
+            string filePath = Path.Combine(fileUploadsDestination, Path.GetRandomFileName());
+            StreamWriter file = new StreamWriter(filePath);
             string prevLine = null;
             while (reader.EndOfStream == false)
             {
@@ -66,6 +68,12 @@ namespace FileUploads
             file.Close();
             body.Close();
             reader.Close();
+
+            // The fileStore cannot be used concurrently
+            lock(fileStore)
+            {
+                fileStore.AddFile(filePath);
+            }
         }
 
         private void ProcessRequest()
@@ -88,8 +96,8 @@ namespace FileUploads
                         StoreFileFromRequest(request);
                         byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
                         response.ContentLength64 = buffer.Length;
-                        System.IO.Stream output = response.OutputStream;
-                        Thread.Sleep(5000);
+                        Stream output = response.OutputStream;
+                        Thread.Sleep(1000);
                         output.Write(buffer, 0, buffer.Length);
                     }
                     Interlocked.Increment(ref concurrentAllowedRequests);

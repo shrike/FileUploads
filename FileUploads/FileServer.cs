@@ -117,7 +117,7 @@ namespace FileUploads
             // We start one more thread that listens for requests whose
             // sole purpose will be to respond with 503 when all other
             // request processors are busy.
-            for (int i = 0; i < numMaxParallelRequests+1; i++)
+            for (int i = 0; i < numMaxParallelRequests + 1; i++)
             {
                 ProcessRequest();
             }

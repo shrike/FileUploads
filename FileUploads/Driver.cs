@@ -10,6 +10,10 @@ namespace FileUploads
             string pref = "http://localhost:8080/";
             int numMaxParallelRequests = 16;
             string fileUploadDestination = @"C:\uploads";
+            if (args.Length > 0)
+            {
+                fileUploadDestination = args[0];
+            }
 
             ThreadPool.SetMinThreads(numMaxParallelRequests, 0);
 

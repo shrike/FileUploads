@@ -1,6 +1,6 @@
 1. Installation
 
-You can start by unpacking the attached archive or cloning the repo from github (). Either way you will end up with a clean git repo containing the Visual Studio solution with both the server and the client. Next, open the solution in MS Visual Studio Enterprise 2015. I used this particular (trial) version and am not sure whether the solution will open properly in other versions of VS. Once opened, install the dependencies via NuGet. The solution should contain 2 windows console applications - FileServer and ParallelUploader. Build both of them (debug/release is up you I guess). Then, navigate to the output dir for the server (FileUploads\FileUploads\bin\Release) and execute the .exe file found there (FileUploads.exe). This should start an HTTP server on localhost:8080 with a default uploads dir C:\uploads. If you wish to use a different directory to store the uploads pass it as a parameter:
+You can start by unpacking the attached archive or cloning the repo from github (). Either way you will end up with a clean git repo containing the Visual Studio solution with both the server and the client. Next, open the solution in MS Visual Studio Enterprise 2015. I used this particular (trial) version and am not sure whether the solution will open properly in other versions of VS. The solution should contain 2 windows console applications - FileServer and ParallelUploader. Build both of them (debug/release is up you I guess). Then, navigate to the output dir for the server (FileUploads\FileUploads\bin\Release) and execute the .exe file found there (FileUploads.exe). This should start an HTTP server on localhost:8080 with a default uploads dir C:\uploads. If you wish to use a different directory to store the uploads pass it as a parameter:
 
   FileUploads.exe c:\different-uploads-dir
   
@@ -87,7 +87,7 @@ It is not very robust because both the server and the client have very little co
 
 How would you improve your solution if you had more time?
 
-Error handling. I've written very little in the way of exception handling and consequently the server and client would sometimes crash with an unhandled exception instead of exiting gracefully or printing a warning and continuing execution. I also would invest more time in parsing the http multipart request as I cannot currently upload BIG files. Also the tests I wrote were primarily used to help me in development and leave a lot to be desired. Finally, much of the constants I use in both the server and the client could be exposed as configuration or command line parameters.
+Error handling. I've written very little in the way of exception handling and consequently the server and client would sometimes crash with an unhandled exception instead of exiting gracefully or printing a warning and continuing execution. I also would invest more time in finding a better multipart request parser as all MS modules for this job were unsatisfactory and I ended up using code from stackoverflow for the job (although that code does the job right now...) Also the tests I wrote were primarily used to help me in development and leave a lot to be desired. Finally, much of the constants I use in both the server and the client could be exposed as configuration or command line parameters.
 
 
 How do you rate the complexity of this test task on the scale of 1 to 5?

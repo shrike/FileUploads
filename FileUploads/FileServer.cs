@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace FileUploads
 {
@@ -25,55 +27,44 @@ namespace FileUploads
             fileStore = new FileStore(numMaxDirNodes, fileUploadsDestination);
         }
 
-        private void StoreFileFromRequest(HttpListenerRequest request)
+        private async void StoreFileFromRequest(HttpListenerRequest request)
         {
-            if (request.ContentType.StartsWith("multipart/form-data") == false)
+            if (request.ContentType == null || request.ContentType.StartsWith("multipart/form-data") == false)
             {
                 return;
             }
 
             Stream body = request.InputStream;
-            System.Text.Encoding encoding = request.ContentEncoding;
-            StreamReader reader = new StreamReader(body, encoding);
 
-            // This is not the proper way to parse a multipart request,
-            // but for the sake of simplicity...
-            string boundary = reader.ReadLine();
-            string line = reader.ReadLine();
-            while (line.Length != 0)
-            {
-                line = reader.ReadLine();
-            }
+            var streamContent = new StreamContent(body);
+            streamContent.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType);
 
-            string filePath = Path.Combine(fileUploadsDestination, Path.GetRandomFileName());
-            StreamWriter file = new StreamWriter(filePath);
-            string prevLine = null;
-            while (reader.EndOfStream == false)
+            var provider = await streamContent.ReadAsMultipartAsync();
+
+            foreach (var httpContent in provider.Contents)
             {
-                line = reader.ReadLine();
-                if (line.StartsWith(boundary) == false)
+                var fileName = httpContent.Headers.ContentDisposition.FileName;
+                if (string.IsNullOrWhiteSpace(fileName))
                 {
-                    if (prevLine != null)
+                    continue;
+                }
+
+                using (Stream fileContents = await httpContent.ReadAsStreamAsync())
+                {
+                    string filePath = Path.Combine(fileUploadsDestination, Path.GetRandomFileName());
+                    FileStream file = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                    fileContents.CopyTo(file);
+                    file.Close();
+
+                    // The fileStore cannot be used concurrently
+                    lock (fileStore)
                     {
-                        file.WriteLine(prevLine);
+                        fileStore.AddFile(filePath);
                     }
                 }
-                else
-                {
-                    file.Write(prevLine);
-                }
-                prevLine = line;
             }
 
-            file.Close();
             body.Close();
-            reader.Close();
-
-            // The fileStore cannot be used concurrently
-            lock(fileStore)
-            {
-                fileStore.AddFile(filePath);
-            }
         }
 
         private void ProcessRequest()

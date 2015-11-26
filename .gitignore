@@ -43,5 +43,6 @@ Temporary Items
 .apdisk
 */bin/*
 */obj/*
+packages/*
 .vs/FileUploads/v14/.suo
 *.coverage

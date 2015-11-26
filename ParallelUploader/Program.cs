@@ -10,6 +10,7 @@ namespace ParallelUploader
     {
         static void Main(string[] args)
         {
+            int start = Environment.TickCount;
             int maxParallelUploads = 50;
             string urlForUploads = "http://localhost:8080";
             string dirToUpload = Path.Combine(".", "default-to-upload");
@@ -65,6 +66,7 @@ namespace ParallelUploader
                     File.Delete(filepath);
                 }
             });
+            Console.WriteLine("Took {0} ticks to upload files.", Environment.TickCount - start);
         }
     }
 }

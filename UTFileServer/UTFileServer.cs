@@ -195,7 +195,7 @@ namespace UTFileServer
             string filename = "test-file2.txt";
             StreamWriter file = new StreamWriter(filename);
 
-            for (int i=0; i<10000000; ++i)
+            for (int i=0; i<1000000; ++i)
             {
                 file.WriteLine("Here is line {0}.", i);
             }

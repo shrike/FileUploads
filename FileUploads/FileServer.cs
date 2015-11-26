@@ -88,7 +88,8 @@ namespace FileUploads
                         byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
                         response.ContentLength64 = buffer.Length;
                         Stream output = response.OutputStream;
-                        Thread.Sleep(1000);
+                        // Uncomment when testing empty parallel requests in order to simulate some work
+                        // Thread.Sleep(2000);
                         output.Write(buffer, 0, buffer.Length);
                     }
                     Interlocked.Increment(ref concurrentAllowedRequests);
